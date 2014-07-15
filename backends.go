@@ -41,8 +41,6 @@ func NewBackendProvider(input string) BackendProvider {
 		u, _ := url.Parse(input)
 		if u.Scheme != "" && u.Path != "" {
 			provider := &configBackends{path: u.Path, scheme: u.Scheme, store: NewConfigStore(u)}
-			go provider.WatchToUpdate()
-			provider.Update()
 			return provider
 		} else {
 			_, _, err := net.SplitHostPort(input)
@@ -92,19 +90,12 @@ func (b *srvBackends) String() string {
 type configBackends struct {
 	sync.Mutex
 	store    ConfigStore
-	backends *fixedBackends
+	counter  int64
 	path     string
 	scheme   string
 }
 
-func (b *configBackends) WatchToUpdate() {
-	for {
-		b.store.Watch(b.path)
-		b.Update()
-	}
-}
-
-func (b *configBackends) Update() {
+func (b *configBackends) NextBackend(conn net.Conn) string {
 	b.Lock()
 	defer b.Unlock()
 	backends := b.store.List(b.path)
@@ -112,14 +103,7 @@ func (b *configBackends) Update() {
 		list := b.store.Get(b.path)
 		backends = strings.Split(list, ",")
 	}
-	b.backends = &fixedBackends{backends: backends}
-	log.Println("configstore:", b.backends)
-}
-
-func (b *configBackends) NextBackend(conn net.Conn) string {
-	b.Lock()
-	defer b.Unlock()
-	return b.backends.NextBackend(conn)
+	return backends[atomic.AddInt64(&b.counter, 1)%int64(len(backends))]
 }
 
 func (b *configBackends) String() string {
