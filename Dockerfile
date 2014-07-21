@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y iptables socat
 
 # Compile and install our source
 ADD ./start.sh /start.sh
+RUN chmod 755 /*.sh
+
 ADD . $GOPATH/src/github.com/jwvdiermen/ambassadord
 RUN go install github.com/jwvdiermen/ambassadord
 
