@@ -71,6 +71,7 @@ func main() {
 			log.Fatal(err)
 		}
 
+		log.Printf("Resolving backend for " + conn.RemoteAddr().String())
 		backend := backends.NextBackend(conn)
 		if backend == "" {
 			conn.Close()

@@ -63,7 +63,8 @@ func (b *omnimodeBackends) lookupProvider(sourceIP, destPort string) (BackendPro
 }
 
 func (b *omnimodeBackends) inspectBackendName(sourceIP, destPort string) (string, error) {
-	envKey := "BACKEND_" + destPort
+	envKey := getopt("BACKEND_PREFIX", "BACKEND") + "_" + destPort
+	log.Println("omni: looking for ENV key " + envKey)
 
 	// todo: cache, invalidate with container destroy events
 	containers, err := b.client.ListContainers(docker.ListContainersOptions{})
