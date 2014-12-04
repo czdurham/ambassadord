@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	"net/url"
 
 	"github.com/coreos/go-etcd/etcd"
@@ -53,9 +54,28 @@ func (s *EtcdStore) Get(path string) string {
 
 func (s *EtcdStore) Watch(path string) {
 	resp, err := s.client.Watch(path, s.waitIndex, true, nil, nil)
-	if err != nil {
-		log.Println("etcd:", err)
-	} else {
+	if err == nil {
 		s.waitIndex = resp.EtcdIndex + 1
+	} else {
+		etcdError, ok := err.(*etcd.EtcdError)
+		if !ok {
+			log.Println("etcd:", err)
+			// Let's not slam the etcd server in the event that we know
+			// an unexpected error occurred.
+			time.Sleep(time.Second)
+			return
+		}
+
+		switch etcdError.ErrorCode {
+		case 401: //etcdError.EcodeEventIndexCleared:
+			// This is racy, but adding one to the last known index
+			// will help get this watcher back into the range of
+			// etcd's internal event history
+			s.waitIndex = s.waitIndex + 1
+		default:
+			log.Println("etcd:", err)
+			time.Sleep(time.Second)
+		}
 	}
 }
+
