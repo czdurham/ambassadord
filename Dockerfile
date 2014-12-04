@@ -23,8 +23,8 @@ RUN apt-get update && apt-get install -y iptables socat
 ADD ./start.sh /start.sh
 RUN chmod 755 /*.sh
 
-ADD . $GOPATH/src/github.com/jwvdiermen/ambassadord
-RUN go install github.com/jwvdiermen/ambassadord
+ADD . $GOPATH/src/github.com/czdurham/ambassadord
+RUN go install github.com/czdurham/ambassadord
 
 EXPOSE 10000
 
